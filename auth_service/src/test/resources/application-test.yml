@@ -1,0 +1,23 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/user_db
+    username: admin
+    password: admin123
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+security:
+  jwt:
+    token:
+      secret-key: test-secret-key-at-least-32-characters-long
+      access-expire-ms: 900000
+      refresh-expire-ms: 604800000
+
+logging:
+  level:
+    org.springframework.security: WARN

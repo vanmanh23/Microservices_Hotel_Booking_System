@@ -3,6 +3,7 @@ package com.manhnguyen.utils;
 import com.manhnguyen.exception.TokenExpiredException;
 import com.manhnguyen.service.CustomUserDetailsService;
 import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -33,6 +34,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         this.jwtUtil = jwtUtil;
         this.userDetailsService = userDetailsService;
         this.resolver = resolver;
+    }
+
+    private void writeUnauthorized(HttpServletResponse response, String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json");
+        response.getWriter().write("{\"error\":\"" + message + "\"}");
     }
 
     @Override
@@ -66,6 +73,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         } catch (ExpiredJwtException ex) {
             resolver.resolveException(request, response, null,
                     new TokenExpiredException("JWT token has expired. Please login or refresh the token.", ex));
+        } catch (JwtException | IllegalArgumentException ex) {
+            writeUnauthorized(response, "Invalid or expired token");
+        } catch (RuntimeException ex) {
+            if (ex.getMessage() != null && ex.getMessage().contains("Refresh token")) {
+                writeUnauthorized(response, ex.getMessage());
+            } else {
+                resolver.resolveException(request, response, null, ex);
+            }
         } catch (Exception ex) {
             resolver.resolveException(request, response, null, ex);
         }
