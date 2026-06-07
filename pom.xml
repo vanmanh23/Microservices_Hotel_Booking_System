@@ -20,6 +20,7 @@
     <modules>
         <module>common-lib</module>
         <module>auth_service</module>
+        <module>hotel-service</module>
     </modules>
 
     <properties>
