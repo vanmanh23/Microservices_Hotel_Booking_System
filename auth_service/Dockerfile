@@ -9,8 +9,13 @@ COPY auth_service/pom.xml auth_service/
 COPY auth_service/src auth_service/src
 COPY hotel-service/pom.xml hotel-service/
 COPY hotel-service/src hotel-service/src
+COPY booking-service booking-service
+COPY payment-service payment-service
+COPY review-service review-service
+COPY notification-service notification-service
+COPY api-gateway api-gateway
 # Download dependencies trước
-RUN mvn -f pom.xml -pl auth_service -am clean package -DskipTests
+RUN mvn -pl auth_service -am clean package -DskipTests
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 COPY --from=build /build/auth_service/target/*.jar app.jar
