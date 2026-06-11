@@ -1,132 +1,482 @@
-# Hotel Booking System (Microservices)
+# Hotel Booking System
 
-Nền tảng đặt phòng khách sạn tương tự Booking.com, xây dựng theo kiến trúc microservices.
+## Overview
 
-## Kiến trúc
+Hotel Booking System là nền tảng đặt phòng khách sạn được xây dựng theo kiến trúc Microservices, lấy cảm hứng từ các hệ thống như Booking.com và Agoda.
+
+Hệ thống cho phép người dùng:
+
+* Đăng ký, đăng nhập và quản lý tài khoản
+* Tìm kiếm khách sạn theo địa điểm, giá và đánh giá
+* Kiểm tra tình trạng phòng trống
+* Đặt phòng và hủy phòng
+* Thanh toán trực tuyến
+* Đánh giá khách sạn sau khi lưu trú
+* Nhận thông báo qua email
+
+---
+
+# System Architecture
+
+```text
+                        +------------------+
+                        |   React Frontend |
+                        +---------+--------+
+                                  |
+                                  v
+                    +--------------------------+
+                    |       API Gateway        |
+                    | Spring Cloud Gateway     |
+                    +------------+-------------+
+                                 |
+      -------------------------------------------------------
+      |            |             |           |              |
+      v            v             v           v              v
+
++-----------+ +-----------+ +-----------+ +-----------+ +-----------+
+| Auth      | | Hotel     | | Booking   | | Payment   | | Review    |
+| Service   | | Service   | | Service   | | Service   | | Service   |
++-----------+ +-----------+ +-----------+ +-----------+ +-----------+
+      |             |             |             |              |
+      ----------------------------------------------------------
+                                 |
+                                 v
+                        +----------------+
+                        | Notification   |
+                        | Service        |
+                        +----------------+
 
 ```
-Client → API Gateway (:8080)
-           ├── Auth Service (:8086)      → PostgreSQL (user_db)
-           ├── Hotel Service (:8081)     → PostgreSQL (hotel_db) + Redis
-           ├── Booking Service (:8082)   → PostgreSQL (booking_db) + Kafka
-           ├── Payment Service (:8083)   → PostgreSQL (payment_db) + Kafka
-           ├── Review Service (:8085)    → PostgreSQL (review_db)
-           └── Notification Service (:8084) ← Kafka (email events)
+
+---
+
+# Microservices
+
+## Auth Service
+
+Responsibilities:
+
+* User Registration
+* Login
+* JWT Authentication
+* Refresh Token
+* User Profile Management
+* Role-Based Access Control (RBAC)
+
+Default Port:
+
+```text
+8086
 ```
 
-## Tech Stack
+---
 
-- Java 21, Spring Boot 3.4.2, Spring Cloud Gateway
-- PostgreSQL 17, Redis 7, Apache Kafka
-- Flyway (schema migration), OpenFeign (inter-service), JWT + BCrypt
-- Docker Compose, GitHub Actions CI
+## Hotel Service
 
-## Quick Start
+Responsibilities:
 
-### Prerequisites
+* Hotel Management
+* Room Management
+* Hotel Search
+* Hotel Details
 
-- Java 21, Maven 3.9+, Docker & Docker Compose
+Default Port:
 
-### Chạy toàn bộ hệ thống
-
-```bash
-docker compose up -d --build
+```text
+8081
 ```
 
-API Gateway: http://localhost:8080
+---
 
-### Chạy local (dev)
+## Booking Service
 
-```bash
-# 1. Khởi động infrastructure
-docker compose up -d postgres-user postgres-hotel postgres-booking postgres-payment postgres-review redis zookeeper kafka
+Responsibilities:
 
-# 2. Build project
-mvn clean install -DskipTests
+* Room Availability Checking
+* Booking Creation
+* Booking Cancellation
+* Booking History
+* Reservation Management
 
-# 3. Chạy từng service (terminal riêng)
-mvn -pl auth_service spring-boot:run
-mvn -pl hotel-service spring-boot:run
-mvn -pl booking-service spring-boot:run
-mvn -pl payment-service spring-boot:run
-mvn -pl notification-service spring-boot:run
-mvn -pl review-service spring-boot:run
-mvn -pl api-gateway spring-boot:run
+Default Port:
+
+```text
+8082
 ```
 
-## API Endpoints (qua Gateway :8080)
+---
 
-### Auth
-| Method | Path | Mô tả |
-|--------|------|-------|
-| POST | `/api/auth/register` | Đăng ký |
-| POST | `/api/auth/login` | Đăng nhập |
-| POST | `/api/auth/refresh-token` | Làm mới token |
-| POST | `/api/auth/logout` | Đăng xuất |
-| GET | `/api/auth/validate` | Xác thực token |
+## Payment Service
 
-### Users
-| Method | Path | Mô tả |
-|--------|------|-------|
-| GET | `/api/users/profile` | Xem hồ sơ |
-| PUT | `/api/users/profile` | Cập nhật hồ sơ |
+Responsibilities:
 
-### Hotels
-| Method | Path | Mô tả |
-|--------|------|-------|
-| GET | `/api/hotels` | Danh sách khách sạn |
-| GET | `/api/hotels/{id}` | Chi tiết khách sạn |
-| GET | `/api/hotels/search?city=&minPrice=&maxPrice=&minRating=&sortBy=` | Tìm kiếm |
+* Payment Processing
+* Refund Processing
+* Transaction History
 
-### Rooms
-| Method | Path | Mô tả |
-|--------|------|-------|
-| GET | `/api/rooms/{id}` | Chi tiết phòng |
-| GET | `/api/rooms/available?hotelId=` | Phòng khả dụng |
+Default Port:
 
-### Bookings
-| Method | Path | Mô tả |
-|--------|------|-------|
-| POST | `/api/bookings` | Tạo booking (PENDING) |
-| GET | `/api/bookings/{id}` | Chi tiết booking |
-| GET | `/api/bookings/user?userId=` | Lịch sử booking |
-| PUT | `/api/bookings/cancel?bookingId=&userId=` | Hủy booking |
+```text
+8083
+```
 
-### Payments
-| Method | Path | Mô tả |
-|--------|------|-------|
-| POST | `/api/payments` | Thanh toán → xác nhận booking |
-| POST | `/api/payments/refund` | Hoàn tiền |
-| GET | `/api/payments/history?userId=` | Lịch sử thanh toán |
+---
 
-### Reviews
-| Method | Path | Mô tả |
-|--------|------|-------|
-| POST | `/api/reviews` | Đánh giá (sau khi hoàn thành lưu trú) |
-| GET | `/api/reviews/hotel/{hotelId}` | Đánh giá theo khách sạn |
+## Notification Service
+
+Responsibilities:
+
+* Booking Confirmation Email
+* Cancellation Email
+* Payment Notification
+* Check-in Reminder
+
+Default Port:
+
+```text
+8084
+```
+
+---
+
+## Review Service
+
+Responsibilities:
+
+* Hotel Rating
+* Hotel Reviews
+* Review Validation
+
+Default Port:
+
+```text
+8085
+```
+
+---
+
+# Technology Stack
+
+## Backend
+
+* Java 21
+* Spring Boot
+* Spring Security
+* Spring Data JPA
+* Spring Cloud Gateway
+* Spring Validation
+
+## Database
+
+* PostgreSQL 17
+
+## Cache
+
+* Redis
+
+## Message Broker
+
+* Apache Kafka
+
+## Containerization
+
+* Docker
+* Docker Compose
+
+## Orchestration
+
+* Kubernetes
+
+## Monitoring
+
+* Prometheus
+* Grafana
+
+## Logging
+
+* ELK Stack
+
+## CI/CD
+
+* GitHub Actions
+
+---
+
+# Database Architecture
+
+Mỗi service sở hữu database riêng biệt (Database Per Service Pattern).
+
+```text
+auth-service         -> user_db
+hotel-service        -> hotel_db
+booking-service      -> booking_db
+payment-service      -> payment_db
+review-service       -> review_db
+```
+
+---
+
+# Core Business Workflows
 
 ## Booking Flow
 
+```text
+1. Search Hotel
+2. Select Room
+3. Check Availability
+4. Create Booking (PENDING)
+5. Process Payment
+6. Confirm Booking
+7. Send Email Notification
 ```
-1. POST /api/bookings        → Tạo booking (PENDING), kiểm tra availability
-2. POST /api/payments        → Thanh toán → Booking chuyển CONFIRMED
-3. Kafka event               → Notification gửi email xác nhận
-4. PUT /api/bookings/cancel  → Hủy booking
-5. POST /api/payments/refund → Hoàn tiền theo chính sách
+
+---
+
+## Cancellation Flow
+
+```text
+1. Request Cancellation
+2. Check Refund Policy
+3. Calculate Refund
+4. Process Refund
+5. Update Booking Status
+6. Send Notification
 ```
 
-## Environment Variables
+---
 
-| Variable | Default | Mô tả |
-|----------|---------|-------|
-| `JWT_SECRET` | (dev key) | Secret key cho JWT |
-| `JWT_ACCESS_EXPIRE_MS` | 900000 | Access token TTL (15 phút) |
-| `JWT_REFRESH_EXPIRE_MS` | 604800000 | Refresh token TTL (7 ngày) |
-| `KAFKA_BOOTSTRAP_SERVERS` | localhost:9092 | Kafka broker |
-| `REDIS_HOST` | localhost | Redis host |
+## Review Flow
 
-## Testing
+```text
+1. Complete Stay
+2. Submit Review
+3. Validate Eligibility
+4. Save Review
+5. Update Hotel Rating
+```
+
+---
+
+# Project Structure
+
+```text
+microservices_hotel_booking
+│
+├── api-gateway
+│
+├── auth-service
+│
+├── hotel-service
+│
+├── booking-service
+│
+├── payment-service
+│
+├── notification-service
+│
+├── review-service
+│
+├── common-lib
+│
+├── docker-compose.yml
+│
+├── pom.xml
+│
+└── README.md
+```
+
+---
+
+# Running with Docker
+
+## Prerequisites
+
+* Docker
+* Docker Compose
+
+Verify installation:
 
 ```bash
-mvn clean test
+docker --version
+docker compose version
 ```
+
+---
+
+## Start Infrastructure
+
+```bash
+docker compose up -d
+```
+
+Services started:
+
+* PostgreSQL
+* Redis
+* Kafka
+* Zookeeper
+* PgAdmin
+
+---
+
+## Build Application
+
+```bash
+mvn clean install
+```
+
+---
+
+## Run Services
+
+Example:
+
+```bash
+cd auth-service
+
+mvn spring-boot:run
+```
+
+Hoặc chạy toàn bộ bằng Docker:
+
+```bash
+docker compose up --build
+```
+
+---
+
+# API Examples
+
+## Register
+
+```http
+POST /api/auth/register
+```
+
+Request:
+
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "password123"
+}
+```
+
+---
+
+## Login
+
+```http
+POST /api/auth/login
+```
+
+Request:
+
+```json
+{
+  "email": "john@example.com",
+  "password": "password123"
+}
+```
+
+---
+
+## Search Hotels
+
+```http
+GET /api/hotels/search?city=DaNang
+```
+
+---
+
+## Create Booking
+
+```http
+POST /api/bookings
+```
+
+Request:
+
+```json
+{
+  "userId": 1,
+  "roomId": 10,
+  "checkIn": "2026-07-01",
+  "checkOut": "2026-07-05"
+}
+```
+
+---
+
+# Security
+
+Implemented:
+
+* JWT Authentication
+* BCrypt Password Encryption
+* Role-Based Access Control (RBAC)
+* Input Validation
+
+Planned:
+
+* Refresh Token Rotation
+* Rate Limiting
+* Audit Logging
+* Secret Management
+* HTTPS/TLS
+
+---
+
+# Monitoring & Observability
+
+* Prometheus Metrics
+* Grafana Dashboards
+* ELK Logging
+* Distributed Tracing
+
+---
+
+# Testing
+
+Run Unit Tests:
+
+```bash
+mvn test
+```
+
+Run Integration Tests:
+
+```bash
+mvn verify
+```
+
+Target:
+
+```text
+Code Coverage > 80%
+```
+
+---
+
+# Future Improvements
+
+* Elasticsearch Integration
+* Stripe Payment Gateway
+* Distributed Transactions (Saga Pattern)
+* Redis Distributed Lock
+* Kubernetes Deployment
+* Auto Scaling
+* Multi-region Deployment
+
+---
+
+# Contributors
+
+Developed as a Microservices Architecture Learning & Production-Ready Booking Platform Project.
+
+---
+
+# License
+
+This project is licensed under the MIT License.
