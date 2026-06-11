@@ -428,12 +428,6 @@ Planned:
 
 ---
 
-# Monitoring & Observability
-
-* Prometheus Metrics
-* Grafana Dashboards
-* ELK Logging
-* Distributed Tracing
 
 ---
 
